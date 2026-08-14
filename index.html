@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <title>Tablero de Comandos</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: #141414;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --orange: #ff6b00;
+      --orange-dim: #cc5500;
+      --magenta: #e91e8c;
+      --magenta-dim: #b0156a;
+      --green: #22c55e;
+      --red: #ef4444;
+      --radius: 16px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ========== HOME ========== */
+    #home {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 24px 20px;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 70%);
+    }
+
+    .home-title {
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .logo-btn {
+      width: 100%;
+      max-width: 320px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 20px;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-btn:active {
+      transform: scale(0.97);
+    }
+
+    .logo-btn.zeppelin:active {
+      border-color: var(--orange);
+    }
+
+    .logo-btn.sexshop:active {
+      border-color: var(--magenta);
+    }
+
+    .logo-btn img {
+      width: 100%;
+      max-width: 240px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .logo-btn .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    /* ========== COMPANY SCREEN ========== */
+    .screen {
+      display: none;
+      min-height: 100dvh;
+      flex-direction: column;
+      padding-bottom: 100px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .topbar-logo {
+      height: 36px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .topbar-name {
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Status card */
+    .status-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .status-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .status-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .status-value.open { color: var(--green); }
+    .status-value.closed { color: var(--red); }
+
+    .status-toggle {
+      width: 56px;
+      height: 32px;
+      border-radius: 20px;
+      border: none;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .status-toggle.open { background: var(--green); }
+    .status-toggle.closed { background: #444; }
+
+    .status-toggle::after {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: white;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+    }
+
+    .status-toggle.open::after {
+      transform: translateX(24px);
+    }
+
+    /* Schedule */
+    .schedule-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .schedule-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .schedule-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 13px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+
+    .schedule-row:last-child { border-bottom: none; }
+
+    .schedule-day {
+      color: var(--text-muted);
+      min-width: 70px;
+    }
+
+    .schedule-hours {
+      text-align: right;
+      color: var(--text);
+    }
+
+    .schedule-hours.today {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    .zeppelin .schedule-hours.today { color: var(--orange); }
+    .sexshop .schedule-hours.today { color: var(--magenta); }
+
+    /* WhatsApp button */
+    .wa-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    .wa-btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    .wa-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    /* Categories */
+    .category {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .category-title {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding-left: 4px;
+      margin-top: 4px;
+    }
+
+    .btn-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.15s, transform 0.15s;
+      position: relative;
+    }
+
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+
+    .zeppelin .action-btn:active { border-color: var(--orange); }
+    .sexshop .action-btn:active { border-color: var(--magenta); }
+
+    .action-btn .btn-title {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .action-btn .btn-arrow {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    /* Edit mode */
+    .edit-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .edit-bar button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-edit {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border) !important;
+    }
+
+    .btn-add {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .sexshop .btn-add {
+      background: var(--magenta);
+    }
+
+    /* Edit mode active */
+    body.edit-mode .action-btn {
+      padding-right: 70px;
+    }
+
+    .edit-actions {
+      display: none;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      gap: 6px;
+    }
+
+    body.edit-mode .edit-actions {
+      display: flex;
+    }
+
+    .edit-actions button {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-edit-item {
+      background: #333;
+      color: #fff;
+    }
+
+    .btn-delete-item {
+      background: #7f1d1d;
+      color: #fff;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: #161616;
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 500px;
+      padding: 24px 20px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--orange);
+    }
+
+    .sexshop .form-group input:focus,
+    .sexshop .form-group select:focus {
+      border-color: var(--magenta);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border) !important;
+    }
+
+    .btn-save {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .sexshop .btn-save {
+      background: var(--magenta);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HOME -->
+  <div id="home">
+    <div class="home-title">Tablero de Comandos</div>
+
+    <button class="logo-btn zeppelin" onclick="openCompany('zeppelin')">
+      <img src="zeppelin-logo.png" alt="Zeppelin Bar">
+      <span class="label">Zeppelin Bar</span>
+    </button>
+
+    <button class="logo-btn sexshop" onclick="openCompany('sexshop')">
+      <img src="sexshop-logo.png" alt="Salta Sex Shop">
+      <span class="label">Salta Sex Shop</span>
+    </button>
+  </div>
+
+  <!-- ZEPPELIN SCREEN -->
+  <div id="screen-zeppelin" class="screen zeppelin">
+    <div class="topbar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <img src="zeppelin-logo.png" class="topbar-logo" alt="">
+      <div class="topbar-name">Zeppelin Bar</div>
+    </div>
+    <div class="content" id="content-zeppelin">
+      <!-- filled by JS -->
+    </div>
+    <div class="edit-bar">
+      <button class="btn-edit" onclick="toggleEditMode()">Editar</button>
+      <button class="btn-add" onclick="openModal('zeppelin')">+ Agregar</button>
+    </div>
+  </div>
+
+  <!-- SEXSHOP SCREEN -->
+  <div id="screen-sexshop" class="screen sexshop">
+    <div class="topbar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <img src="sexshop-logo.png" class="topbar-logo" alt="">
+      <div class="topbar-name">Salta Sex Shop</div>
+    </div>
+    <div class="content" id="content-sexshop">
+      <!-- filled by JS -->
+    </div>
+    <div class="edit-bar">
+      <button class="btn-edit" onclick="toggleEditMode()">Editar</button>
+      <button class="btn-add" onclick="openModal('sexshop')">+ Agregar</button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title" id="modal-title">Nuevo botón</div>
+      <div class="form-group">
+        <label>Título</label>
+        <input type="text" id="input-title" placeholder="Ej: Caja Zeppelin">
+      </div>
+      <div class="form-group">
+        <label>Link</label>
+        <input type="url" id="input-link" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <input type="text" id="input-category" placeholder="Ej: Operación" list="categories-list">
+        <datalist id="categories-list"></datalist>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn-save" onclick="saveButton()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== DATA ==========
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxYzBriVnBPucKssTSLOM49PYsRSDPVYJYkq4YdkR8cm4dt44qq_f6jKJcv0r_jTUTl0A/exec';
+
+    const DEFAULTS = {
+      zeppelin: {
+        whatsapp: 'https://api.whatsapp.com/send/?phone=5493875458204',
+        hoursRanges: {
+          0: [], 1: [], 2: [], 3: [],
+          4: [{ start: 20*60+30, end: 5*60 }],
+          5: [{ start: 20*60+30, end: 5*60 }],
+          6: []
+        },
+        buttons: []
+      },
+      sexshop: {
+        whatsapp: 'https://api.whatsapp.com/send/?phone=5493876849415&text&type=phone_number&app_absent=0',
+        hoursRanges: {
+          0: [{ start: 9*60+30, end: 12*60+30 }, { start: 14*60, end: 21*60+30 }],
+          1: [{ start: 9*60+30, end: 12*60+30 }, { start: 14*60, end: 21*60+30 }],
+          2: [{ start: 9*60+30, end: 12*60+30 }, { start: 14*60, end: 21*60+30 }],
+          3: [{ start: 9*60+30, end: 12*60+30 }, { start: 14*60, end: 21*60+30 }],
+          4: [{ start: 9*60+30, end: 12*60+30 }, { start: 14*60, end: 2*60+30 }],
+          5: [{ start: 18*60, end: 2*60+30 }],
+          6: []
+        },
+        buttons: []
+      }
+    };
+
+    let data = JSON.parse(JSON.stringify(DEFAULTS));
+    let currentCompany = null;
+    let editMode = false;
+    let editingId = null;
+    let isSaving = false;
+    let isLoading = false;
+
+    // ========== NAV ==========
+    function openCompany(id) {
+      currentCompany = id;
+      document.getElementById('home').style.display = 'none';
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + id).classList.add('active');
+      renderCompany(id);
+    }
+
+    function goHome() {
+      currentCompany = null;
+      editMode = false;
+      document.body.classList.remove('edit-mode');
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('home').style.display = 'flex';
+      updateEditButtons();
+    }
+
+    // ========== STATUS CALCULATOR ==========
+    // Always uses Argentina timezone (America/Argentina/Buenos_Aires)
+    function getArgentinaNow() {
+      // Returns { dayIndex: 0=Lun...6=Dom, minutes: minutes from midnight }
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        weekday: 'short',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(new Date());
+      const weekday = parts.find(p => p.type === 'weekday').value; // Mon, Tue...
+      const hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+      const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+
+      const dayMap = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+      return {
+        dayIndex: dayMap[weekday],
+        minutes: hour * 60 + minute
+      };
+    }
+
+    function isCurrentlyOpen(companyId) {
+      const company = data[companyId];
+      if (!company.hoursRanges) return false;
+
+      const { dayIndex, minutes } = getArgentinaNow();
+
+      // Check current day ranges
+      const ranges = company.hoursRanges[dayIndex] || [];
+      for (const r of ranges) {
+        if (r.end > r.start) {
+          // normal range same day
+          if (minutes >= r.start && minutes < r.end) return true;
+        } else {
+          // overnight: start tonight until end next morning
+          if (minutes >= r.start) return true;
+        }
+      }
+
+      // Also check if we are in the early morning of an overnight from PREVIOUS day
+      const prevDayIdx = dayIndex === 0 ? 6 : dayIndex - 1;
+      const prevRanges = company.hoursRanges[prevDayIdx] || [];
+      for (const r of prevRanges) {
+        if (r.end < r.start) { // overnight
+          if (minutes < r.end) return true;
+        }
+      }
+
+      return false;
+    }
+
+    // ========== RENDER ==========
+    function renderCompany(id) {
+      const company = data[id];
+      const container = document.getElementById('content-' + id);
+      const isOpen = isCurrentlyOpen(id);
+      const statusClass = isOpen ? 'open' : 'closed';
+      const statusText = isOpen ? 'Abierto' : 'Cerrado';
+
+      let html = `
+        <div class="status-card">
+          <div class="status-info">
+            <div class="status-label">Estado del negocio</div>
+            <div class="status-value ${statusClass}">${statusText}</div>
+          </div>
+        </div>
+
+        <a href="${company.whatsapp}" target="_blank" class="wa-btn">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+      `;
+
+      // Group buttons by category
+      const groups = {};
+      company.buttons.forEach(b => {
+        const cat = b.category || 'General';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(b);
+      });
+
+      const categories = Object.keys(groups).sort();
+
+      if (categories.length === 0) {
+        html += `<div class="empty-state">No hay botones todavía.<br>Tocá "+ Agregar" para crear uno.</div>`;
+      } else {
+        categories.forEach(cat => {
+          html += `
+            <div class="category">
+              <div class="category-title">${cat}</div>
+              <div class="btn-grid">
+                ${groups[cat].map(b => `
+                  <a href="${b.link}" target="_blank" class="action-btn" data-id="${b.id}">
+                    <span class="btn-title">${b.title}</span>
+                    <span class="btn-arrow">→</span>
+                    <div class="edit-actions">
+                      <button class="btn-edit-item" onclick="event.preventDefault(); event.stopPropagation(); editButton('${id}', ${b.id})">✎</button>
+                      <button class="btn-delete-item" onclick="event.preventDefault(); event.stopPropagation(); deleteButton('${id}', ${b.id})">✕</button>
+                    </div>
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = html;
+      updateEditButtons();
+    }
+
+    // ========== EDIT MODE ==========
+    function toggleEditMode() {
+      editMode = !editMode;
+      document.body.classList.toggle('edit-mode', editMode);
+      updateEditButtons();
+    }
+
+    function updateEditButtons() {
+      document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.textContent = editMode ? 'Listo' : 'Editar';
+      });
+    }
+
+    // ========== MODAL ==========
+    function openModal(companyId, buttonId = null) {
+      currentCompany = companyId;
+      editingId = buttonId;
+      const modal = document.getElementById('modal');
+      const titleEl = document.getElementById('modal-title');
+
+      // Update datalist with existing categories
+      const cats = [...new Set(data[companyId].buttons.map(b => b.category).filter(Boolean))];
+      document.getElementById('categories-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+
+      if (buttonId) {
+        const btn = data[companyId].buttons.find(b => b.id === buttonId);
+        titleEl.textContent = 'Editar botón';
+        document.getElementById('input-title').value = btn.title;
+        document.getElementById('input-link').value = btn.link;
+        document.getElementById('input-category').value = btn.category || '';
+      } else {
+        titleEl.textContent = 'Nuevo botón';
+        document.getElementById('input-title').value = '';
+        document.getElementById('input-link').value = '';
+        document.getElementById('input-category').value = '';
+      }
+
+      modal.classList.add('active');
+      // Apply company class for accent color
+      modal.querySelector('.modal').className = 'modal ' + companyId;
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+      editingId = null;
+    }
+
+    function saveButton() {
+      const title = document.getElementById('input-title').value.trim();
+      const link = document.getElementById('input-link').value.trim();
+      const category = document.getElementById('input-category').value.trim() || 'General';
+
+      if (!title || !link) {
+        alert('Título y Link son obligatorios');
+        return;
+      }
+
+      if (editingId) {
+        const btn = data[currentCompany].buttons.find(b => b.id === editingId);
+        if (btn) {
+          btn.title = title;
+          btn.link = link;
+          btn.category = category;
+        }
+      } else {
+        const newId = Date.now() + Math.floor(Math.random() * 1000);
+        data[currentCompany].buttons.push({ id: newId, title, link, category });
+      }
+
+      closeModal();
+      renderCompany(currentCompany);
+      saveButtonsToSheet();
+    }
+
+    function editButton(companyId, id) {
+      openModal(companyId, id);
+    }
+
+    function deleteButton(companyId, id) {
+      if (!confirm('¿Eliminar este botón?')) return;
+      data[companyId].buttons = data[companyId].buttons.filter(b => b.id !== id);
+      renderCompany(companyId);
+      saveButtonsToSheet();
+    }
+
+    // ========== GOOGLE SHEETS API ==========
+    async function loadButtonsFromSheet() {
+      if (isLoading) return;
+      isLoading = true;
+      try {
+        const res = await fetch(API_URL + '?action=get');
+        const json = await res.json();
+        if (json.buttons && Array.isArray(json.buttons)) {
+          // Reset buttons
+          data.zeppelin.buttons = [];
+          data.sexshop.buttons = [];
+
+          json.buttons.forEach(b => {
+            const company = (b.company || '').toLowerCase();
+            if (company === 'zeppelin' || company === 'sexshop') {
+              data[company].buttons.push({
+                id: Number(b.id) || Date.now(),
+                title: b.title || '',
+                link: b.link || '',
+                category: b.category || 'General'
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error cargando botones:', err);
+        alert('No se pudieron cargar los botones. Revisá la conexión.');
+      } finally {
+        isLoading = false;
+        if (currentCompany) renderCompany(currentCompany);
+      }
+    }
+
+    async function saveButtonsToSheet() {
+      if (isSaving) return;
+      isSaving = true;
+
+      // Flatten all buttons with company field
+      const allButtons = [];
+      ['zeppelin', 'sexshop'].forEach(company => {
+        (data[company].buttons || []).forEach(b => {
+          allButtons.push({
+            company: company,
+            id: b.id,
+            title: b.title,
+            link: b.link,
+            category: b.category || 'General'
+          });
+        });
+      });
+
+      try {
+        const encoded = encodeURIComponent(JSON.stringify(allButtons));
+        const res = await fetch(API_URL + '?action=save&data=' + encoded);
+        const json = await res.json();
+        if (!json.success) {
+          throw new Error(json.error || 'Error al guardar');
+        }
+      } catch (err) {
+        console.error('Error guardando botones:', err);
+        alert('No se pudo guardar. Intentá de nuevo.');
+      } finally {
+        isSaving = false;
+      }
+    }
+
+    // ========== PWA ==========
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('SW registration failed:', err);
+        });
+      });
+    }
+
+    // Cargar botones al iniciar
+    loadButtonsFromSheet();
+
+    // Refresh status every minute while on a company screen
+    setInterval(() => {
+      if (currentCompany) renderCompany(currentCompany);
+    }, 60000);
+  </script>
+</body>
+</html>
