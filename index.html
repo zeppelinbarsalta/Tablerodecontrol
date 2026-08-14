@@ -654,11 +654,20 @@
     let isLoading = false;
 
     // ========== NAV ==========
-    function openCompany(id) {
+    async function openCompany(id) {
       currentCompany = id;
       document.getElementById('home').style.display = 'none';
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + id).classList.add('active');
+
+      // Mostrar estado de carga mientras traemos los botones frescos
+      const container = document.getElementById('content-' + id);
+      if (container) {
+        container.innerHTML = '<div class="empty-state">Cargando botones...</div>';
+      }
+
+      // Siempre recargar desde Google Sheets al entrar
+      await loadButtonsFromSheet();
       renderCompany(id);
     }
 
@@ -895,34 +904,42 @@
 
     // ========== GOOGLE SHEETS API ==========
     async function loadButtonsFromSheet() {
-      if (isLoading) return;
+      if (isLoading) {
+        // Esperar a que termine la carga en curso
+        while (isLoading) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+        return;
+      }
       isLoading = true;
       try {
-        const res = await fetch(API_URL + '?action=get');
+        // Cache-busting para evitar respuestas viejas
+        const res = await fetch(API_URL + '?action=get&_=' + Date.now(), {
+          cache: 'no-store'
+        });
         const json = await res.json();
         if (json.buttons && Array.isArray(json.buttons)) {
-          // Reset buttons
           data.zeppelin.buttons = [];
           data.sexshop.buttons = [];
 
           json.buttons.forEach(b => {
-            const company = (b.company || '').toLowerCase();
+            const company = (b.company || '').toLowerCase().trim();
             if (company === 'zeppelin' || company === 'sexshop') {
               data[company].buttons.push({
                 id: Number(b.id) || Date.now(),
-                title: b.title || '',
-                link: b.link || '',
-                category: b.category || 'General'
+                title: (b.title || '').trim(),
+                link: (b.link || '').trim(),
+                category: (b.category || 'General').trim()
               });
             }
           });
+          console.log('Botones cargados:', data.zeppelin.buttons.length, 'Zeppelin |', data.sexshop.buttons.length, 'Sex Shop');
         }
       } catch (err) {
         console.error('Error cargando botones:', err);
         alert('No se pudieron cargar los botones. Revisá la conexión.');
       } finally {
         isLoading = false;
-        if (currentCompany) renderCompany(currentCompany);
       }
     }
 
