@@ -680,9 +680,16 @@
       }
       if (!url) return false;
 
-      // En móvil, navegar en el mismo contexto suele permitir que el SO abra la app nativa
-      // (WhatsApp, Instagram, Maps, bancos, etc.)
-      window.location.href = url;
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+                       (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+
+      if (isMobile) {
+        // En móvil: mismo contexto para que el SO pueda abrir la app nativa
+        window.location.href = url;
+      } else {
+        // En computadora: siempre pestaña nueva
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
       return false;
     }
 
