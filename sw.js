@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tablero-v1';
+const CACHE_NAME = 'tablero-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -26,13 +26,26 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Nunca cachear la API de Google Sheets ni requests externos
+  if (url.hostname.includes('script.google.com') || url.hostname.includes('google.com')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Para el resto: cache primero, luego red
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      const networked = fetch(event.request).then((response) => {
+        // Solo cachear assets locales exitosos
+        if (response.ok && url.origin === self.location.origin) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       }).catch(() => cached);
+      return cached || networked;
     })
   );
 });
