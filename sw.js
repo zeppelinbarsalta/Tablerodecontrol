@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tablero-v4';
+const CACHE_NAME = 'tablero-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -34,7 +34,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para el resto: cache primero, luego red
+  // La página (HTML): siempre red primero, así cada cambio llega al toque; sin conexión usa la copia
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request.url, { cache: 'no-store' }).then((response) => {
+        if (response.ok && url.origin === self.location.origin) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Para el resto (logos, íconos): cache primero, luego red
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const networked = fetch(event.request).then((response) => {
