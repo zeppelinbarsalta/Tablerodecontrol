@@ -534,6 +534,29 @@
       background: var(--magenta);
     }
 
+    /* ========== LOGIN (Accesos) ========== */
+    #login {
+      position: fixed; inset: 0; z-index: 9999; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    #login[hidden] { display: none; }
+    #login form {
+      width: 100%; max-width: 340px; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px 22px; display: flex; flex-direction: column; gap: 10px;
+    }
+    #login .lt { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    #login label { font-size: 12px; color: var(--text-muted); }
+    #login input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+      font-size: 17px; padding: 12px; width: 100%;
+    }
+    #login button { background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 600; margin-top: 6px; }
+    #login .err { min-height: 18px; color: var(--red); font-size: 13px; }
+    .salir-btn {
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: 999px; padding: 7px 16px; font-size: 12px; letter-spacing: 1px;
+    }
+
     /* Empty state */
     .empty-state {
       text-align: center;
@@ -544,6 +567,19 @@
   </style>
 </head>
 <body>
+
+  <!-- LOGIN (Accesos: DNI + clave) -->
+  <div id="login">
+    <form id="loginForm" autocomplete="on">
+      <div class="lt">Tablero de Comandos</div>
+      <label for="liDni">DNI</label>
+      <input id="liDni" inputmode="numeric" autocomplete="username" placeholder="Sin puntos">
+      <label for="liPass">Clave</label>
+      <input id="liPass" type="password" autocomplete="current-password">
+      <div class="err" id="liErr"></div>
+      <button type="submit" id="liBtn">Ingresar</button>
+    </form>
+  </div>
 
   <!-- HOME -->
   <div id="home">
@@ -558,6 +594,8 @@
       <img src="sexshop-logo.png" alt="Salta Sex Shop">
       <span class="label">Salta Sex Shop</span>
     </button>
+
+    <button class="salir-btn" type="button" onclick="salir()">Salir</button>
   </div>
 
   <!-- ZEPPELIN SCREEN -->
@@ -619,6 +657,48 @@
   <script>
     // ========== DATA ==========
     const API_URL = 'https://script.google.com/macros/s/AKfycbxYzBriVnBPucKssTSLOM49PYsRSDPVYJYkq4YdkR8cm4dt44qq_f6jKJcv0r_jTUTl0A/exec';
+    const ACCESOS_URL = 'https://script.google.com/macros/s/AKfycbyRC8Y2pb1eU7g8nvEmMrTIVS5V23YVa3Hcj6z77jS3UkWVWxiRInAhFJuaD3tnDGv8/exec';
+    const LS_SES = 'zpp_sesion'; // sesión compartida por todos los sistemas de zeppelin-bar.com
+    let SES = null;
+    function sesGet(){ try{ return JSON.parse(localStorage.getItem(LS_SES)||'null'); }catch(_){ return null; } }
+    function sesSet(v){ try{ v ? localStorage.setItem(LS_SES, JSON.stringify(v)) : localStorage.removeItem(LS_SES); }catch(_){} }
+    function tokenVigente(t){ try{ const p=JSON.parse(atob(String(t).split('.')[0].replace(/-/g,'+').replace(/_/g,'/'))); return p && p.e > Date.now(); }catch(_){ return false; } }
+    function tieneTablero(u){ return !!(u && (u.accesos||[]).indexOf('tablero')>=0); }
+    async function api(body){
+      const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({ token: SES && SES.token }, body)), cache:'no-store' });
+      const j = await r.json();
+      if (j && j.error === 'sesion'){ salir('Tu sesión venció. Volvé a ingresar.'); throw new Error('sesion'); }
+      return j;
+    }
+    function mostrarLogin(msg){
+      document.getElementById('login').hidden = false;
+      document.getElementById('liErr').textContent = msg || '';
+      setTimeout(() => { const i = document.getElementById('liDni'); if (i) i.focus(); }, 50);
+    }
+    function salir(msg){
+      SES = null; sesSet(null);
+      data.zeppelin.buttons = []; data.sexshop.buttons = [];
+      goHome(); mostrarLogin(msg || '');
+    }
+    async function doLogin(ev){
+      ev.preventDefault();
+      const dni = document.getElementById('liDni').value.replace(/\D/g,'');
+      const pass = document.getElementById('liPass').value;
+      const err = document.getElementById('liErr'), btn = document.getElementById('liBtn');
+      if (!dni || !pass){ err.textContent = 'Ingresá DNI y clave'; return; }
+      btn.disabled = true; err.textContent = 'Verificando…';
+      try {
+        const r = await fetch(ACCESOS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'login', dni, pass, sistema:'tablero' }) });
+        const j = await r.json();
+        if (!j || !j.ok){ err.textContent = (j && j.error) || 'No se pudo ingresar'; return; }
+        if (!tieneTablero(j.usuario)){ err.textContent = 'No tenés acceso al Tablero'; return; }
+        SES = { token: j.token, usuario: j.usuario }; sesSet(SES);
+        document.getElementById('liPass').value = ''; err.textContent = '';
+        document.getElementById('login').hidden = true;
+        loadButtonsFromSheet();
+      } catch (_) { err.textContent = 'No se pudo conectar'; }
+      finally { btn.disabled = false; }
+    }
 
     const DEFAULTS = {
       zeppelin: {
@@ -913,11 +993,8 @@
       }
       isLoading = true;
       try {
-        // Cache-busting para evitar respuestas viejas
-        const res = await fetch(API_URL + '?action=get&_=' + Date.now(), {
-          cache: 'no-store'
-        });
-        const json = await res.json();
+        if (!SES) return;
+        const json = await api({ action: 'get' });
         if (json.buttons && Array.isArray(json.buttons)) {
           data.zeppelin.buttons = [];
           data.sexshop.buttons = [];
@@ -937,7 +1014,7 @@
         }
       } catch (err) {
         console.error('Error cargando botones:', err);
-        alert('No se pudieron cargar los botones. Revisá la conexión.');
+        if (err.message !== 'sesion') alert('No se pudieron cargar los botones. Revisá la conexión.');
       } finally {
         isLoading = false;
       }
@@ -962,15 +1039,13 @@
       });
 
       try {
-        const encoded = encodeURIComponent(JSON.stringify(allButtons));
-        const res = await fetch(API_URL + '?action=save&data=' + encoded);
-        const json = await res.json();
-        if (!json.success) {
+        const json = await api({ action: 'save', data: allButtons });
+        if (!json.ok) {
           throw new Error(json.error || 'Error al guardar');
         }
       } catch (err) {
         console.error('Error guardando botones:', err);
-        alert('No se pudo guardar. Intentá de nuevo.');
+        if (err.message !== 'sesion') alert('No se pudo guardar: ' + err.message);
       } finally {
         isSaving = false;
       }
@@ -985,8 +1060,13 @@
       });
     }
 
-    // Cargar botones al iniciar
-    loadButtonsFromSheet();
+    // Arranque: sin sesión válida con permiso "tablero" se pide DNI y clave
+    document.getElementById('loginForm').addEventListener('submit', doLogin);
+    (function arranque(){
+      const s = sesGet();
+      if (s && s.token && tieneTablero(s.usuario) && tokenVigente(s.token)){ SES = s; document.getElementById('login').hidden = true; loadButtonsFromSheet(); }
+      else mostrarLogin('');
+    })();
 
     // Refresh status every minute while on a company screen
     setInterval(() => {
